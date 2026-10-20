@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">صندوق</string>
+    <string name="vault_title">گاوصندوق</string>
+    <string name="import_files">افزودن فایل</string>
+    <string name="lock_now">قفل</string>
+    <string name="empty_hint">گاوصندوق خالی است.\nبا دکمه + عکس، ویدیو، موزیک یا سند اضافه کن.</string>
+    <string name="importing">در حال انتقال و رمزگذاری…</string>
+    <string name="grant_access">اجازه دسترسی</string>
+</resources>

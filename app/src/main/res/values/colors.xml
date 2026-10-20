@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="bg">#120D09</color>
+    <color name="surface">#1E1812</color>
+    <color name="surface2">#2A2219</color>
+    <color name="brass">#C79C4B</color>
+    <color name="brass_dark">#7B5A22</color>
+    <color name="cream">#E6DFD0</color>
+    <color name="muted">#9C917F</color>
+    <color name="green">#38C46C</color>
+    <color name="red">#C8392B</color>
+    <color name="black">#000000</color>
+    <color name="white">#FFFFFF</color>
+</resources>

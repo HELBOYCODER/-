@@ -1,0 +1,445 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#18130f">
+<title>قفل چرخشی صندوق</title>
+<style>
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  [hidden]{display:none!important}
+  html,body{margin:0}
+  body{
+    min-height:100vh;min-height:100dvh;padding:16px;
+    display:flex;align-items:center;justify-content:center;
+    background:radial-gradient(ellipse at 50% 18%,#3b3026 0%,#18130f 58%,#0c0907 100%);
+    font-family:'Vazirmatn','Vazir',Tahoma,sans-serif;color:#e6dfd0;
+  }
+  .door{
+    position:relative;width:min(100%,380px);padding:28px 22px 22px;border-radius:28px;
+    display:flex;flex-direction:column;align-items:center;gap:16px;
+    -webkit-user-select:none;user-select:none;
+    background:
+      repeating-linear-gradient(90deg,rgba(255,255,255,.022) 0 1px,transparent 1px 4px),
+      linear-gradient(160deg,#4b4640 0%,#2d2a26 48%,#191715 100%);
+    box-shadow:0 22px 50px rgba(0,0,0,.65),inset 0 0 0 2px #0b0a09,inset 0 3px 0 rgba(255,255,255,.07);
+  }
+  .rv{position:absolute;width:11px;height:11px;border-radius:50%;
+    background:radial-gradient(circle at 35% 30%,#e0dbd0,#69645b 55%,#2b2924);box-shadow:0 1px 2px #000}
+  .tl{top:11px;left:11px}.tr{top:11px;right:11px}.bl{bottom:11px;left:11px}.br{bottom:11px;right:11px}
+
+  .dial{
+    position:relative;width:100%;border-radius:50%;outline:none;cursor:grab;
+    touch-action:none;-webkit-touch-callout:none;
+    box-shadow:0 12px 26px rgba(0,0,0,.55);transition:box-shadow .5s;
+  }
+  .dial.grab{cursor:grabbing}
+  .dial:focus-visible{box-shadow:0 12px 26px rgba(0,0,0,.55),0 0 0 3px rgba(231,178,74,.9)}
+  .dial svg{display:block;width:100%;height:auto}
+  .open .dial{box-shadow:0 12px 26px rgba(0,0,0,.55),0 0 0 3px #3fae6a,0 0 38px rgba(63,174,106,.5)}
+
+  .flash{
+    position:absolute;inset:0;border-radius:50%;
+    display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;
+    background:radial-gradient(circle,rgba(22,66,40,.93),rgba(7,20,12,.97));
+    color:#eafff1;opacity:0;pointer-events:none;transition:opacity .45s;
+  }
+  .flash.show{opacity:1}
+  .flash b{font-size:24px}
+  .flash span{font-size:14px;color:#b9e9c9;min-height:1.2em}
+
+  .panel{width:100%;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:0 4px}
+  .bolts{
+    width:70px;display:flex;flex-direction:column;gap:5px;padding:7px 6px;border-radius:8px;overflow:hidden;
+    background:#0b0a09;box-shadow:inset 0 0 8px #000,0 1px 0 rgba(255,255,255,.1);
+  }
+  .bolts i{
+    display:block;height:8px;border-radius:4px;
+    background:linear-gradient(#f0f0f0,#8d8d8d 55%,#4d4d4d);
+    transition:transform .75s cubic-bezier(.3,.9,.3,1);
+  }
+  .bolts i:nth-child(2){transition-delay:.12s}
+  .bolts i:nth-child(3){transition-delay:.24s}
+  .open .bolts i{transform:translateX(-130%)}
+
+  .window{
+    padding:8px 16px;border-radius:9px;background:#0a0908;border:2px solid #9a7a35;
+    box-shadow:inset 0 0 10px #000,0 1px 0 rgba(255,255,255,.12);
+  }
+  .window b{
+    display:block;direction:ltr;font:700 28px/1 'Courier New',monospace;letter-spacing:.16em;
+    color:#efdca4;text-shadow:0 0 8px rgba(239,220,164,.35);
+  }
+  .lamp{
+    width:18px;height:18px;border-radius:50%;background:#c8392b;
+    box-shadow:0 0 12px 3px rgba(200,57,43,.6),inset 0 -2px 3px rgba(0,0,0,.4);
+    transition:background .4s,box-shadow .4s;
+  }
+  .open .lamp{background:#38c46c;box-shadow:0 0 14px 4px rgba(56,196,108,.65),inset 0 -2px 3px rgba(0,0,0,.35)}
+
+  .status{margin:0;font-size:16px;font-weight:700;color:#dcd4c3;transition:color .4s}
+  .open .status{color:#86e6a8}
+  .hint{margin:0;max-width:270px;text-align:center;font-size:12.5px;line-height:1.8;color:#9c917f}
+  .btn{
+    font:inherit;font-size:14px;color:#efe3c6;background:#2c2621;border:1px solid #7a6638;
+    border-radius:10px;padding:8px 18px;cursor:pointer;
+  }
+  .btn:active{transform:scale(.98)}
+  .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+</style>
+</head>
+<body>
+<main class="door" id="door">
+  <i class="rv tl"></i><i class="rv tr"></i><i class="rv bl"></i><i class="rv br"></i>
+
+  <div class="dial" id="dial" tabindex="0" role="slider" aria-label="شماره قفل" aria-valuemin="0" aria-valuemax="999" aria-valuenow="0">
+    <svg id="dialSvg" viewBox="0 0 400 400" aria-hidden="true" focusable="false">
+      <defs>
+        <radialGradient id="gPlate" cx="35%" cy="28%" r="85%">
+          <stop offset="0" stop-color="#5a564f"/><stop offset=".55" stop-color="#2b2926"/><stop offset="1" stop-color="#11100f"/>
+        </radialGradient>
+        <linearGradient id="gChrome" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0" stop-color="#f4f4f4"/><stop offset=".3" stop-color="#8d8d8d"/>
+          <stop offset=".52" stop-color="#e2e2e2"/><stop offset=".78" stop-color="#777"/><stop offset="1" stop-color="#cfcfcf"/>
+        </linearGradient>
+        <radialGradient id="gFace" cx="50%" cy="42%" r="70%">
+          <stop offset="0" stop-color="#262626"/><stop offset="1" stop-color="#070707"/>
+        </radialGradient>
+        <radialGradient id="gHub" cx="38%" cy="32%" r="80%">
+          <stop offset="0" stop-color="#6a6a6a"/><stop offset=".6" stop-color="#2c2c2c"/><stop offset="1" stop-color="#0d0d0d"/>
+        </radialGradient>
+        <radialGradient id="gKnob" cx="38%" cy="30%" r="85%">
+          <stop offset="0" stop-color="#b4b4b4"/><stop offset=".5" stop-color="#5a5a5a"/><stop offset="1" stop-color="#1c1c1c"/>
+        </radialGradient>
+        <linearGradient id="gBrass" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0" stop-color="#f3dc9b"/><stop offset=".5" stop-color="#c79c4b"/><stop offset="1" stop-color="#7b5a22"/>
+        </linearGradient>
+      </defs>
+
+      <circle cx="200" cy="200" r="195" fill="url(#gPlate)" stroke="#0a0908" stroke-width="3"/>
+      <circle cx="200" cy="200" r="180" fill="none" stroke="url(#gChrome)" stroke-width="14"/>
+      <circle cx="200" cy="200" r="173" fill="#060606"/>
+
+      <g id="dialFace">
+        <circle cx="200" cy="200" r="166" fill="url(#gFace)"/>
+        <circle cx="200" cy="200" r="166" fill="none" stroke="#9b9b9b" stroke-width="1.2"/>
+        <path id="tMin" fill="none" stroke="#f4efe3" stroke-width="1" stroke-opacity=".5"/>
+        <path id="tMid" fill="none" stroke="#f4efe3" stroke-width="1.5" stroke-opacity=".8"/>
+        <path id="tMaj" fill="none" stroke="#f4efe3" stroke-width="2.6"/>
+        <circle cx="200" cy="200" r="146" fill="none" stroke="#5b5b5b" stroke-width=".8"/>
+        <g id="labels" fill="#f4efe3" font-family="Arial,Helvetica,sans-serif" font-size="15" font-weight="700" text-anchor="middle"></g>
+        <circle cx="200" cy="200" r="98" fill="url(#gHub)" stroke="#000" stroke-width="2"/>
+        <circle cx="200" cy="200" r="92" fill="none" stroke="url(#gBrass)" stroke-width="3"/>
+        <circle cx="200" cy="200" r="70" fill="url(#gKnob)" stroke="#0a0a0a" stroke-width="2"/>
+        <path id="knurl" fill="none" stroke="#000" stroke-opacity=".5" stroke-width="1.7"/>
+        <circle cx="200" cy="200" r="38" fill="url(#gBrass)" stroke="#4a3512" stroke-width="2"/>
+        <circle cx="200" cy="200" r="26" fill="none" stroke="#5c4316" stroke-opacity=".6" stroke-width="1.5"/>
+        <rect x="196.5" y="140" width="7" height="20" rx="3" fill="#f4efe3"/>
+      </g>
+
+      <circle cx="200" cy="200" r="168" fill="none" stroke="#000" stroke-opacity=".55" stroke-width="4"/>
+      <path d="M64.8 163.8A140 140 0 0 1 163.8 64.8" fill="none" stroke="#fff" stroke-opacity=".07" stroke-width="20" stroke-linecap="round"/>
+
+      <polygon points="200,46 187,14 213,14" fill="#000" opacity=".35" transform="translate(2 3)"/>
+      <polygon points="200,46 187,14 213,14" fill="#e4432d" stroke="#fff" stroke-opacity=".85" stroke-width="1.2" stroke-linejoin="round"/>
+    </svg>
+
+    <div class="flash" id="flash" aria-hidden="true">
+      <svg width="46" height="46" viewBox="0 0 24 24" fill="none" stroke="#86e6a8" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 9.9-1"/>
+      </svg>
+      <b>قفل باز شد</b>
+      <span id="flashSub"></span>
+    </div>
+  </div>
+
+  <div class="panel">
+    <div class="bolts" aria-hidden="true"><i></i><i></i><i></i></div>
+    <div class="window" aria-hidden="true"><b id="readout">000</b></div>
+    <div class="lamp" aria-hidden="true"></div>
+  </div>
+
+  <p class="status" id="status">قفل است</p>
+  <p class="hint">دایره را بچرخانید: با کشیدن، اسکرول یا فلش‌های کیبورد</p>
+  <button type="button" class="btn" id="relock" hidden>قفل کردن دوباره</button>
+  <div class="sr" id="live" aria-live="polite"></div>
+</main>
+
+<script>
+/* ===== موتور صدای مکانیکی قاب صندوق (Web Audio) ===== */
+var SFX = (function () {
+  var ctx = null, noiseBuf = null, lastClick = 0, enabled = true;
+  function ac() {
+    try {
+      if (!ctx) ctx = new (window.AudioContext || window.webkitAudioContext)();
+      if (ctx.state === 'suspended') ctx.resume();
+    } catch (e) { ctx = null; }
+    return ctx;
+  }
+  function noise(c) {
+    if (!noiseBuf) {
+      var n = Math.floor(c.sampleRate * 0.2), b = c.createBuffer(1, n, c.sampleRate), d = b.getChannelData(0);
+      for (var i = 0; i < n; i++) d[i] = Math.random() * 2 - 1;
+      noiseBuf = b;
+    }
+    var s = c.createBufferSource(); s.buffer = noiseBuf; return s;
+  }
+  function burst(c, t, freq, q, vol, dur) {
+    var s = noise(c), bp = c.createBiquadFilter(), g = c.createGain();
+    bp.type = 'bandpass'; bp.frequency.value = freq; bp.Q.value = q;
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.exponentialRampToValueAtTime(vol, t + 0.002);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    s.connect(bp); bp.connect(g); g.connect(c.destination);
+    s.start(t); s.stop(t + dur + 0.02);
+  }
+  function thunk(c, t, f0, f1, vol) {
+    var o = c.createOscillator(), g = c.createGain();
+    o.type = 'sine';
+    o.frequency.setValueAtTime(f0, t);
+    o.frequency.exponentialRampToValueAtTime(f1, t + 0.22);
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.exponentialRampToValueAtTime(vol, t + 0.01);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + 0.3);
+    o.connect(g); g.connect(c.destination);
+    o.start(t); o.stop(t + 0.33);
+    var s = noise(c), lp = c.createBiquadFilter(), ng = c.createGain();
+    lp.type = 'lowpass'; lp.frequency.value = 850;
+    ng.gain.setValueAtTime(0.0001, t);
+    ng.gain.exponentialRampToValueAtTime(vol * 0.8, t + 0.005);
+    ng.gain.exponentialRampToValueAtTime(0.0001, t + 0.13);
+    s.connect(lp); lp.connect(ng); ng.connect(c.destination);
+    s.start(t); s.stop(t + 0.15);
+  }
+  return {
+    resume: function () { if (enabled) ac(); },
+    setEnabled: function (v) { enabled = v; },
+    click: function () {
+      if (!enabled) return;
+      var c = ac(); if (!c) return;
+      var t = c.currentTime;
+      if (t - lastClick < 0.016) return; lastClick = t;
+      burst(c, t, 2600, 9, 0.45, 0.045);
+      var o = c.createOscillator(), og = c.createGain();
+      o.type = 'square'; o.frequency.value = 1750;
+      og.gain.setValueAtTime(0.07, t);
+      og.gain.exponentialRampToValueAtTime(0.0001, t + 0.03);
+      o.connect(og); og.connect(c.destination);
+      o.start(t); o.stop(t + 0.035);
+    },
+    unlock: function () {
+      if (!enabled) return;
+      var c = ac(); if (!c) return;
+      var t = c.currentTime;
+      for (var i = 0; i < 5; i++) burst(c, t + i * 0.07, 2200, 7, 0.4, 0.04);
+      thunk(c, t + 0.42, 120, 55, 0.6);
+      thunk(c, t + 0.62, 90, 42, 0.75);
+    }
+  };
+})();
+
+/* ===== منطق قفل ===== */
+(function () {
+  'use strict';
+
+  var TOTAL = 1000;        // عددها: 0 تا 999
+  var DEG = 360 / TOTAL;   // هر قدم 0.36 درجه
+  var TARGET = 666;        // عدد بازکننده قفل
+  var DWELL = 700;         // مدت ثابت ماندن روی عدد (میلی‌ثانیه)
+  var REDIRECT_URL = '';   // فقط برای تست مرورگر؛ داخل اپ استفاده نمی‌شود
+  var IN_APP = !!(window.AndroidVault && window.AndroidVault.onUnlock);
+
+  function onUnlock() {
+    // داخل اپ اندروید: به اکتیویتی گاوصندوق خبر بده
+    try { if (IN_APP) window.AndroidVault.onUnlock(String(TARGET)); } catch (e) {}
+  }
+
+  function $(id) { return document.getElementById(id); }
+  var door = $('door'), dial = $('dial'), svg = $('dialSvg'), face = $('dialFace'),
+      readout = $('readout'), statusEl = $('status'), flash = $('flash'),
+      flashSub = $('flashSub'), relockBtn = $('relock'), live = $('live');
+
+  function polar(r, deg) {
+    var a = deg * Math.PI / 180;
+    return [200 + r * Math.sin(a), 200 - r * Math.cos(a)];
+  }
+  function f(n) { return n.toFixed(2); }
+  function seg(p, q) { return 'M' + f(p[0]) + ' ' + f(p[1]) + 'L' + f(q[0]) + ' ' + f(q[1]); }
+
+  (function build() {
+    var minor = '', mid = '', major = '', v, a, len, s;
+    for (v = 0; v < TOTAL; v += 5) {
+      a = v * DEG;
+      len = v % 50 === 0 ? 18 : (v % 10 === 0 ? 10 : 5);
+      s = seg(polar(163, a), polar(163 - len, a));
+      if (v % 50 === 0) major += s; else if (v % 10 === 0) mid += s; else minor += s;
+    }
+    $('tMin').setAttribute('d', minor);
+    $('tMid').setAttribute('d', mid);
+    $('tMaj').setAttribute('d', major);
+
+    var labels = '', n, c;
+    for (n = 0; n < TOTAL; n += 50) {
+      a = n * DEG; c = polar(124, a);
+      labels += '<text x="' + f(c[0]) + '" y="' + f(c[1]) + '" dy="5" transform="rotate(' +
+                f(a) + ' ' + f(c[0]) + ' ' + f(c[1]) + ')">' + n + '</text>';
+    }
+    $('labels').innerHTML = labels;
+
+    var knurl = '', i;
+    for (i = 0; i < 60; i++) knurl += seg(polar(61, i * 6), polar(70, i * 6));
+    $('knurl').setAttribute('d', knurl);
+  })();
+
+  var rotation = 0, drawn = 0, raf = 0, shownVal = -1, unlocked = false;
+  var activeId = null, lastA = 0, snapTimer = 0, dwellTimer = 0;
+
+  function pad3(v) { return ('00' + v).slice(-3); }
+
+  function valueNow() {
+    var v = Math.round(-rotation / DEG) % TOTAL;
+    if (v < 0) v += TOTAL;
+    return v + 0;
+  }
+
+  function draw(deg) {
+    drawn = deg;
+    face.setAttribute('transform', 'rotate(' + deg.toFixed(3) + ' 200 200)');
+  }
+
+  function glide(to, ms) {
+    cancelAnimationFrame(raf);
+    var from = drawn, t0 = performance.now();
+    (function step(now) {
+      var k = Math.max(0, Math.min(1, (now - t0) / ms));
+      draw(from + (to - from) * (1 - Math.pow(1 - k, 3)));
+      if (k < 1) raf = requestAnimationFrame(step);
+    })(t0);
+  }
+
+  function refresh() {
+    var v = valueNow();
+    if (v === shownVal) return;
+    shownVal = v;
+    readout.textContent = pad3(v);
+    dial.setAttribute('aria-valuenow', v);
+    SFX.click();
+    clearTimeout(dwellTimer);
+    if (!unlocked && v === TARGET) {
+      dwellTimer = setTimeout(function () {
+        if (!unlocked && valueNow() === TARGET) unlock();
+      }, DWELL);
+    }
+  }
+
+  function setRotation(deg, ms) {
+    rotation = deg;
+    if (ms) glide(deg, ms); else { cancelAnimationFrame(raf); draw(deg); }
+    refresh();
+  }
+
+  function snap() {
+    var target = -(valueNow() * DEG);
+    var diff = (((target - rotation) % 360) + 540) % 360 - 180;
+    setRotation(rotation + diff, 160);
+    live.textContent = 'عدد ' + pad3(valueNow());
+  }
+
+  function angleOf(e) {
+    var r = svg.getBoundingClientRect();
+    return Math.atan2(e.clientX - (r.left + r.width / 2), -(e.clientY - (r.top + r.height / 2))) * 180 / Math.PI;
+  }
+
+  dial.addEventListener('pointerdown', function (e) {
+    if (unlocked || activeId !== null) return;
+    if (e.pointerType === 'mouse' && e.button !== 0) return;
+    SFX.resume();
+    activeId = e.pointerId;
+    try { dial.setPointerCapture(e.pointerId); } catch (err) {}
+    cancelAnimationFrame(raf);
+    rotation = drawn;
+    refresh();
+    clearTimeout(snapTimer);
+    lastA = angleOf(e);
+    dial.classList.add('grab');
+    try { dial.focus({ preventScroll: true }); } catch (err) {}
+    e.preventDefault();
+  });
+
+  window.addEventListener('pointermove', function (e) {
+    if (e.pointerId !== activeId) return;
+    var a = angleOf(e), d = a - lastA;
+    if (d > 180) d -= 360; else if (d < -180) d += 360;
+    lastA = a;
+    setRotation(rotation + d);
+  });
+
+  function endDrag(e) {
+    if (e.pointerId !== activeId) return;
+    activeId = null;
+    dial.classList.remove('grab');
+    snap();
+  }
+  window.addEventListener('pointerup', endDrag);
+  window.addEventListener('pointercancel', endDrag);
+
+  dial.addEventListener('wheel', function (e) {
+    if (unlocked || !e.deltaY) return;
+    e.preventDefault();
+    SFX.resume();
+    var steps = Math.max(1, Math.min(10, Math.round(Math.abs(e.deltaY) / 40)));
+    setRotation(rotation - (e.deltaY > 0 ? steps : -steps) * DEG);
+    clearTimeout(snapTimer);
+    snapTimer = setTimeout(snap, 140);
+  }, { passive: false });
+
+  var KEYS = { ArrowRight: 1, ArrowUp: 1, ArrowLeft: -1, ArrowDown: -1, PageUp: 10, PageDown: -10 };
+  dial.addEventListener('keydown', function (e) {
+    if (unlocked || !KEYS.hasOwnProperty(e.key)) return;
+    e.preventDefault();
+    SFX.resume();
+    setRotation(rotation - KEYS[e.key] * DEG, 110);
+    clearTimeout(snapTimer);
+    snapTimer = setTimeout(snap, 160);
+  });
+
+  function unlock() {
+    if (unlocked) return;
+    unlocked = true;
+    activeId = null;
+    dial.classList.remove('grab');
+    clearTimeout(snapTimer);
+    clearTimeout(dwellTimer);
+    snap();
+    SFX.unlock();
+    door.classList.add('open');
+    statusEl.textContent = 'قفل باز شد';
+    flashSub.textContent = IN_APP ? 'در حال ورود به گاوصندوق…' : (REDIRECT_URL ? 'در حال ورود…' : '');
+    flash.classList.add('show');
+    setTimeout(function () { flash.classList.remove('show'); }, 1900);
+    live.textContent = 'قفل باز شد';
+    setTimeout(onUnlock, 650);
+    if (!IN_APP) {
+      relockBtn.hidden = false;
+      if (REDIRECT_URL) setTimeout(function () { window.location.href = REDIRECT_URL; }, 1800);
+    }
+  }
+
+  relockBtn.addEventListener('click', function () {
+    unlocked = false;
+    door.classList.remove('open');
+    statusEl.textContent = 'قفل است';
+    relockBtn.hidden = true;
+    live.textContent = 'قفل شد';
+    clearTimeout(snapTimer);
+    setRotation(rotation + 810 + Math.random() * 180, 1100);
+    snapTimer = setTimeout(snap, 1150);
+  });
+
+  draw(0);
+  refresh();
+  shownVal = 0;
+})();
+</script>
+</body>
+</html>
